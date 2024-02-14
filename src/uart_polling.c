@@ -45,7 +45,6 @@ void uart_polling_init (int baud){
         return;
     }
     struct uart_reg_map *uart = UART2_BASE;
-    uart->CR1 |= UART_EN; 
     // Reset and Clock Control
     struct rcc_reg_map *rcc = RCC_BASE;
     rcc->apb1_enr |= UART_CLKEN;
@@ -56,7 +55,7 @@ void uart_polling_init (int baud){
      // Initialize UART to the desired Baud Rate
     *(uint16_t*)&uart->BRR = (uint16_t)UARTDIV;
     // UART Control Registers
-    uart->CR1 |= (UART_TE | UART_RE);
+    uart->CR1 |= (UART_TE | UART_RE | UART_EN);
     return;
 }
 
@@ -80,7 +79,7 @@ void uart_polling_put_byte (char c){
 char uart_polling_get_byte (){
     struct uart_reg_map *uart = UART2_BASE;
     // Wait until ready to be read
-    while (!(uart->SR & UART_SR_RXNE));
+    while (!(uart->SR & UART_SR_RXNE)){};
     // return received data
     return (char)(uart->DR);
 }
