@@ -32,6 +32,12 @@ void uart_polling_init (int baud){
     struct uart_reg_map *uart = UART2_BASE;
     uart->CR1 |= UART_EN;
 
+    // GPIO_PINS
+    // PA_2__TX
+    gpio_init(GPIO_A, 2, MODE_ALT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);
+    // PA_3__RX
+    gpio_init(GPIO_A,  3, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);
+    
     return;
 }
 
