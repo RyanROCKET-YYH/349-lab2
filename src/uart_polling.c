@@ -53,8 +53,8 @@ void uart_polling_init (int baud){
     gpio_init(GPIO_A, 2, MODE_ALT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);        /* PA_2 for TX line UART2 */
     gpio_init(GPIO_A, 3, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);       /* PA_2 for RX line UART2 */
     
-    // Initialize UART to the desired Baud Rate
-    uart->BRR = UARTDIV;
+     // Initialize UART to the desired Baud Rate
+    *(uint16_t*)&uart->BRR = (uint16_t)UARTDIV;
     // UART Control Registers
     uart->CR1 |= (UART_TE | UART_RE);
     return;
@@ -68,9 +68,9 @@ void uart_polling_init (int baud){
 void uart_polling_put_byte (char c){
     struct uart_reg_map *uart = UART2_BASE;
     // Wait the data register to be empty
-    while (!(uart->SR & UART_SR_TXE));
+    while (!((uart->SR) & UART_SR_TXE)){};
     // Once ready, write and return
-    uart->DR = c;
+    *(char *)&uart->DR = c;
     return;
 }
 
