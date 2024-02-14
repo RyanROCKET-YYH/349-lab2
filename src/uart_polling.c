@@ -21,7 +21,7 @@ struct uart_reg_map {
 #define UART_EN (1 << 13)
 
 /** @brief Pre calculated UARTDIV value for desired band rate of 115200 bps by default */
-#define UARTDIV ((8 << 4) | 11)
+#define UARTDIV 0x8B
 
 /** @brief Enable Bit for Transmitter */
 #define UART_TE (1 << 3)
@@ -45,6 +45,7 @@ void uart_polling_init (int baud){
         return;
     }
     struct uart_reg_map *uart = UART2_BASE;
+    uart->CR1 |= UART_EN; 
     // Reset and Clock Control
     struct rcc_reg_map *rcc = RCC_BASE;
     rcc->apb1_enr |= UART_CLKEN;
@@ -55,7 +56,7 @@ void uart_polling_init (int baud){
     // Initialize UART to the desired Baud Rate
     uart->BRR = UARTDIV;
     // UART Control Registers
-    uart->CR1 |= (UART_EN | UART_TE | UART_RE);
+    uart->CR1 |= (UART_TE | UART_RE);
     return;
 }
 
