@@ -17,8 +17,17 @@ struct uart_reg_map {
 /** @brief Base address for UART2 */
 #define UART2_BASE  (struct uart_reg_map *) 0x40004400
 
-/** @brief Enable  Bit for UART Config register */
+/** @brief Enable Bit for UART Config register */
 #define UART_EN (1 << 13)
+
+/** @brief Pre calculated UARTDIV value for desired band rate of 115200 bps by default */
+#define UARTDIV ((8 << 4) | 11)
+
+/** @brief Enable Bit for Transmitter */
+#define UART_TE (1 << 3)
+
+/** @brief Enable Bit for Receiver */
+#define UART_RE (1 << 2)
 
 /**
  * @brief initializes UART to given baud rate with 8-bit word length, 1 stop bit, 0 parity bits
@@ -26,18 +35,26 @@ struct uart_reg_map {
  * @param baud Baud rate
  */
 void uart_polling_init (int baud){
-    (void) baud; /* This line is simply here to suppress the Unused Variable Error. */
-                 /* You should remove this line in your final implementation */
+    if (baud == 0) {
+        return;
+    }
 
     struct uart_reg_map *uart = UART2_BASE;
-    uart->CR1 |= UART_EN;
-
-    // GPIO_PINS
-    // PA_2__TX
-    gpio_init(GPIO_A, 2, MODE_ALT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);
-    // PA_3__RX
-    gpio_init(GPIO_A,  3, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);
     
+    // Reset and Clock Control
+    struct rcc_reg_map *rcc = RCC_BASE;
+    rcc->apb1_enr |= UART_CLKEN;
+
+    // GPIO Pins
+    gpio_init(GPIO_A, 2, MODE_ALT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);        /* PA_2 for TX line UART2 */
+    gpio_init(GPIO_A, 3, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT7);       /* PA_2 for RX line UART2 */
+    
+    // Initialize UART to the desired Baud Rate
+    uart->BRR = UARTDIV;
+
+    // UART Control Registers
+    uart->CR1 |= (UART_EN | UART_TE | UART_RE);
+
     return;
 }
 
