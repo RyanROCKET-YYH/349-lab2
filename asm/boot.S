@@ -135,33 +135,30 @@ _spi1_handler:
 .thumb_func
 .global _reset_
 _reset_:
-@ Write your boot loader here!
-@ The bkpt instruction puts a breakpoint that fires an exception that
-@ can be caught if a debugger is attached.
-  @ load data from linker Script
-  ldr r1, =_erodata
-  ldr r2, =__data_start__
-  mov r4, #0 @ count number
-  ldr r6, =_data_size
-   .copy_data:
-    ldr r3, [r1] @ _erodata(flash)
-    str r3, [r2] @ store it into __data_start__(SRAM)
-    add r1, r1, #4
-    add r2, r2, #4
-    add r4, r4, #4  @ to count the data size
-    cmp r4, r6 @ compare the size of what we have done and _data_size@
-    bne .copy_data
-  @ make bss zero
-  ldr r7, =__bss_start__
-  mov r10, #0 @ make bss into 0
-  mov r4, #0 @ initilize the count number
-  ldr r9, =_bss_size
-  .make_bss_zero:
-    str r10, [r7] @ make bss into 0
-    add r7, r7, #4
-    add r4, r4, #4 @ to count the bss size
-    cmp r4, r9  @ compare the size of what we have done and _bss_size
-    bne .make_bss_zero
+
+  ldr r0, = _erodata	    /* address of initialized values in flash */
+  ldr r1, = _sdata	      /* the start of SRAM */
+  ldr r2, = _edata	      /* the end of SRAM */
+
+copy_loop:
+  cmp r1, r2              /* if r1 >= r2, all variables have been copied */
+  bge copy_done          
+  ldr r3, [r0], #4        /* load r0 to r3 and post increment by 4 */
+  str r3, [r1], #4        /* store r3 to r1 so that data to SRAM */
+  b copy_loop             /* repeat all values are copied */
+
+copy_done:
+  ldr r1, = _sbss         /* consider zero_bss by loading _sbss and _ebss */
+  ldr r2, = _ebss
+  movs r3, #0
+
+zero_bss:
+  cmp r1, r2
+  bge start_kernel        /* if r1 >= r2, .bss section is set to 0 */
+  str r3, [r1], #4
+  b zero_bss
+  
+start_kernel:
   bl main
   bkpt
 
