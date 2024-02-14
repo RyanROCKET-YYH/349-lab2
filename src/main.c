@@ -8,7 +8,12 @@
 
 
 int main() {
-  while(1);
+  uart_polling_init(115200);
+  printk("hello world");
+  while(1) {
+    char test = uart_polling_get_byte();
+    uart_polling_put_byte(test);
+  }
 
   return 0;
 }
