@@ -36,37 +36,39 @@ const char key_map[NUM_ROWS][NUM_COLS] = {
 };
 
 void keypad_init(){
+  
     // columns as output
     gpio_init(COL1_PORT, COL1_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
-    gpio_init(COL2_PORT, COL3_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
+    gpio_init(COL2_PORT, COL2_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
     gpio_init(COL3_PORT, COL3_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
 
     //rows as input 
-    gpio_init(ROW1_PORT, ROW1_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
-    gpio_init(ROW2_PORT, ROW2_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
-    gpio_init(ROW3_PORT, ROW3_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
-    gpio_init(ROW4_PORT, ROW4_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
-
-    // set all columns high
+    gpio_init(ROW1_PORT, ROW1_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);
+    gpio_init(ROW2_PORT, ROW2_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);
+    gpio_init(ROW3_PORT, ROW3_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);
+    gpio_init(ROW4_PORT, ROW4_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0); 
+    
     gpio_set(COL1_PORT, COL1_PIN);
     gpio_set(COL2_PORT, COL2_PIN);
     gpio_set(COL3_PORT, COL3_PIN);
     return;
 }
 
-char keypad_read(){
+char keypad_read() {
+    // set all columns high
+   
     for (int col = 0; col < NUM_COLS; col++) {
         // Set the current column to LOW
-        gpio_clear(COL_PORTS[col], col_pins[col]);
+        gpio_clr(col_ports[col], col_pins[col]);
 	for (int row = 0; row < NUM_ROWS; row++) {
 	    //read the current row
 	    if (gpio_read(row_ports[row], row_pins[row]) == 0) {
 	        gpio_set(row_ports[row], row_pins[row]);
-		printk("%c pressed \n", key_map[row][col]);
 		return key_map[row][col];
             }
-	    gpio_set(COL_PORTS[col], COL_PINS[col]);
+	    gpio_set(col_ports[col], col_pins[col]);
 	}
-
+    }
     return '\0';
 }
+

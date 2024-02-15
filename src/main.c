@@ -34,6 +34,7 @@ int main() {
   gpio_init(BLUE_LED_PORT, BLUE_LED_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
 
   gpio_init(BUTTON1_PORT, BUTTON1_PIN, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);
+  keypad_init();
 
   while(1) {
     // Turn on the LEDs
@@ -48,11 +49,15 @@ int main() {
     lazy_delay(1000); // 1 second delay
  */
     
-    int button1_state = gpio_read(BUTTON1_PORT, BUTTON1_PIN);
-    printk("BUTTON1 State:%d\n", button1_state);
+    //int button1_state = gpio_read(BUTTON1_PORT, BUTTON1_PIN);
+    //printk("BUTTON1 State:%d\n", button1_state);
 
     //char test = uart_polling_get_byte();
     //uart_polling_put_byte(test);
+    
+    //char key = keypad_read();
+    //printk("%c pressed\n", key);
+   
   }
 
   return 0;
