@@ -55,8 +55,9 @@ int main() {
     //char test = uart_polling_get_byte();
     //uart_polling_put_byte(test);
     
-    //char key = keypad_read();
-    //printk("%c pressed\n", key);
+    char key = keypad_read();
+    printk("%c pressed\n", key);
+    lazy_delay(10);
    
   }
 

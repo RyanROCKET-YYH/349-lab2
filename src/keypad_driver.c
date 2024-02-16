@@ -26,7 +26,7 @@
 const int row_pins[NUM_ROWS] = {ROW1_PIN, ROW2_PIN, ROW3_PIN, ROW4_PIN};
 const int col_pins[NUM_COLS] = {COL1_PIN, COL2_PIN, COL3_PIN};
 const int row_ports[NUM_ROWS] = {ROW1_PORT, ROW2_PORT, ROW3_PORT, ROW4_PORT};
-const int col_ports[NUM_COLS] = {GPIO_A, GPIO_B, GPIO_C};
+const int col_ports[NUM_COLS] = {GPIO_A, GPIO_A, GPIO_C};
 
 const char key_map[NUM_ROWS][NUM_COLS] = {
     {'1', '2', '3'},
@@ -43,10 +43,10 @@ void keypad_init(){
     gpio_init(GPIO_C, 7, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);		//pc_7
 
     //rows as input 
-    gpio_init(GPIO_A, 6, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);		//pa_6
-    gpio_init(GPIO_A, 8, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);		//pa_8
-    gpio_init(GPIO_A, 9, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);		//pa_9
-    gpio_init(GPIO_B, 6, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_DOWN, ALT0);		//pb_6
+    gpio_init(GPIO_A, 6, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);		//pa_6
+    gpio_init(GPIO_A, 8, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);		//pa_8
+    gpio_init(GPIO_A, 9, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);		//pa_9
+    gpio_init(GPIO_B, 6, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);		//pb_6
     
     gpio_set(GPIO_A, COL1_PIN);
     gpio_set(GPIO_A, COL2_PIN);
@@ -55,7 +55,6 @@ void keypad_init(){
 }
 
 char keypad_read() {
-    // set all columns high
    
     for (int col = 0; col < NUM_COLS; col++) {
         // Set the current column to LOW
@@ -63,11 +62,11 @@ char keypad_read() {
 	for (int row = 0; row < NUM_ROWS; row++) {
 	    //read the current row
 	    if (gpio_read(row_ports[row], row_pins[row]) == 0) {
-	        gpio_set(row_ports[row], row_pins[row]);
+		gpio_set(col_ports[col], col_pins[col]);
 		return key_map[row][col];
             }
-	    gpio_set(col_ports[col], col_pins[col]);
 	}
+	gpio_set(col_ports[col], col_pins[col]);
     }
     return '\0';
 }
