@@ -55,19 +55,24 @@ void keypad_init(){
 }
 
 char keypad_read() {
-   
+    char key = '\0';
     for (int col = 0; col < NUM_COLS; col++) {
-        // Set the current column to LOW
+        // Set the current column to LO to enable to read from 7 pins
         gpio_clr(col_ports[col], col_pins[col]);
-	for (int row = 0; row < NUM_ROWS; row++) {
-	    //read the current row
-	    if (gpio_read(row_ports[row], row_pins[row]) == 0) {
-		gpio_set(col_ports[col], col_pins[col]);
-		return key_map[row][col];
+        for (int row = 0; row < NUM_ROWS; row++) {
+            // Read the current row
+            if (gpio_read(row_ports[row], row_pins[row]) == 0) {
+                key = key_map[row][col]; // Store the detected key
+                // Wait for the key to be released
+                while(gpio_read(row_ports[row], row_pins[row]) == 0) {}
+                gpio_set(col_ports[col], col_pins[col]); // Set column back to HI
+                return key; // Return the detected key
             }
-	}
-	gpio_set(col_ports[col], col_pins[col]);
+        }
+
+        // Set the column back to HI
+        gpio_set(col_ports[col], col_pins[col]);
     }
-    return '\0';
+    return '\0'; // Return '\0' if no key is pressed
 }
 
