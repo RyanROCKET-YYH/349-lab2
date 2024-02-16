@@ -60,6 +60,5 @@ int main() {
     lazy_delay(10);
    
   }
-
   return 0;
 }
