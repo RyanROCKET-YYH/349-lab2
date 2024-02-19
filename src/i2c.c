@@ -24,11 +24,15 @@ struct i2c_reg_map {
 /** @brief Peripheral Clock Frequency(16 MHz) of I2C */
 #define I2C_CF  0b10000
 
-/** @brief Peripheral Clock Frequency(16 MHz) of I2C */
-#define I2C_CCR  0x28
+/** @brief I2C clock speed: 100kHz (0x28 * 2) */
+#define I2C_CCR  0x50
 
 /** @brief Start bit mask */
 #define I2C_SB  (1 << 8)
+
+/** @brief Stop bit mask */
+#define I2C_STOP  (1 << 8) //TODO:
+
 
 
 #define I2C_EN  (1 << )
@@ -44,13 +48,13 @@ void i2c_master_init(uint16_t clk){
 
     // Reset and Clock Control
     struct rcc_reg_map *rcc = RCC_BASE;
-    rcc->apb1_enr |= (I2C1_CLKEN | I2C2_CLKEN | I2C3_CLKEN);
+    rcc->apb1_enr |= I2C1_CLKEN;
 
     // Peripheral Clock Frequency: 16 Mhz
     *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
 
     // I2C clock speed: 100kHz
-    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
+    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CCR;
 
     return;
 }
@@ -61,11 +65,16 @@ void i2c_master_start(){
     i2c->CR1 |= I2C_SB;
     // check if SB =1
     while(!(i2c->CR1 & I2C_SB));
-    // haven't done yet. see p480 of manual
+    
     return;
 }
 
 void i2c_master_stop(){
+    struct i2c_reg_map *i2c = I2C1_BASE;
+    // set stop bit
+    i2c->CR1 |= I2C_STOP;
+    // check TxE and BTF bit (they should be set to 1)
+    while(!((i2c->SR1 >> 7)&(i2c->SR1 >> 2)&1));
     return;
 }
 
@@ -73,6 +82,11 @@ int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
     (void) buf;
     (void) len;
     (void) slave_addr;
+
+    struct i2c_reg_map *i2c = I2C1_BASE;
+
+    // write the address(i2c's address) of slave into data register (EV8)
+    *(uint8_t*)&i2c->DR = slave_addr;
 
     return 0;
 }
