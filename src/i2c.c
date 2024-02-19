@@ -73,7 +73,7 @@ void i2c_master_stop(){
     struct i2c_reg_map *i2c = I2C1_BASE;
     // set stop bit
     i2c->CR1 |= I2C_STOP;
-    // check TxE and BTF bit (they should be set to 1)
+    // check TxE and BTF bit (they should be set to 1)(EV8_2)
     while(!((i2c->SR1 >> 7)&(i2c->SR1 >> 2)&1));
     return;
 }
@@ -87,6 +87,20 @@ int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
 
     // write the address(i2c's address) of slave into data register (EV8)
     *(uint8_t*)&i2c->DR = slave_addr;
+
+    // generate the topmost 7 bits as slave address (the last bit (write): 0)
+    slave_addr = slave_addr << 1;
+
+    // check ADDR and TxE bit (they should be set to 1)(EV6, EV8_1)
+    while(!((i2c->SR1 >> 1)&(i2c->SR1 >> 7)&1));
+
+    // send data
+    for(int i=0; i < len; i++){
+        *(uint8_t*)&i2c->DR = buf[i];
+        // check TxE bit (should be set to 1)(EV8)
+        while(!((i2c->SR1 >> 7)&1));
+    }
+    
 
     return 0;
 }
