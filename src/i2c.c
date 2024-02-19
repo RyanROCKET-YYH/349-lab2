@@ -21,10 +21,33 @@ struct i2c_reg_map {
 /** @brief Base Address of I2C1 */
 #define I2C1_BASE   (struct i2c_reg_map *) 0x40005400
 
+/** @brief Peripheral Clock Frequency(16 MHz) of I2C */
+#define I2C_CF  0b10000
+
+/** @brief Peripheral Clock Frequency(16 MHz) of I2C */
+#define I2C_CCR  0x28
+
+
 #define I2C_EN  (1 << )
 void i2c_master_init(uint16_t clk){
     (void) clk; /* This line is simply here to suppress the Unused Variable Error. */
                 /* You should remove this line in your final implementation */
+
+    struct i2c_reg_map *i2c = I2C1_BASE;
+
+    // GPIO Pins
+    gpio_init(GPIO_B, 8, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);        /* PB_8(D15)*/
+    gpio_init(GPIO_B, 9, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);       /* PB_9(D14) */
+
+    // Reset and Clock Control
+    struct rcc_reg_map *rcc = RCC_BASE;
+    rcc->apb1_enr |= (I2C1_CLKEN | I2C2_CLKEN | I2C3_CLKEN);
+
+    // Peripheral Clock Frequency: 16 Mhz
+    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
+
+    // I2C clock speed: 100kHz
+    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
 
     return;
 }
