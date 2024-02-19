@@ -27,6 +27,9 @@ struct i2c_reg_map {
 /** @brief Peripheral Clock Frequency(16 MHz) of I2C */
 #define I2C_CCR  0x28
 
+/** @brief Start bit mask */
+#define I2C_SB  (1 << 8)
+
 
 #define I2C_EN  (1 << )
 void i2c_master_init(uint16_t clk){
@@ -53,6 +56,12 @@ void i2c_master_init(uint16_t clk){
 }
 
 void i2c_master_start(){
+    struct i2c_reg_map *i2c = I2C1_BASE;
+    // set start bit
+    i2c->CR1 |= I2C_SB;
+    // check if SB =1
+    while(!(i2c->CR1 & I2C_SB));
+    // haven't done yet. see p480 of manual
     return;
 }
 
