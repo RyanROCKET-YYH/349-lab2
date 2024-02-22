@@ -27,7 +27,7 @@ void lazy_delay(unsigned int milliseconds) {
 }
 
 int main() {
-  uart_polling_init(115200);
+  // uart_polling_init(115200);
   //printk("hello world");
 
   //gpio_init(YELLOW_LED_PORT, YELLOW_LED_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
