@@ -27,7 +27,7 @@ void lazy_delay(unsigned int milliseconds) {
 }
 
 int main() {
-  uart_polling_init(115200);
+  // uart_polling_init(115200);
   //printk("hello world");
 
   //gpio_init(YELLOW_LED_PORT, YELLOW_LED_PIN, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
@@ -37,8 +37,13 @@ int main() {
   // keypad_init();
   i2c_master_init(80);
   lcd_driver_init();
-  printk("LCD CLR");
-//   while(1) {
+  while (1)
+  {
+    /* code */
+  }
+  
+  // printk("LCD CLR");
+  // while(1) {
 //     // Turn on the LEDs
 //  /* gpio_set(YELLOW_LED_PORT, YELLOW_LED_PIN);
 //     gpio_set(BLUE_LED_PORT, BLUE_LED_PIN);
@@ -61,6 +66,6 @@ int main() {
 //     printk("%c pressed\n", key);
 //     lazy_delay(10);
    
-//   }
+  // }
   return 0;
 }
