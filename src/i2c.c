@@ -22,7 +22,7 @@ struct i2c_reg_map {
 #define I2C1_BASE   (struct i2c_reg_map *) 0x40005400
 
 /** @brief Peripheral Clock Frequency(16 MHz) of I2C */
-#define I2C_CF  0b10000
+#define I2C_CF  0x10000
 
 /** @brief I2C clock speed: 100kHz (0x28 * 2) */
 #define I2C_CCR  0x50
@@ -31,11 +31,9 @@ struct i2c_reg_map {
 #define I2C_SB  (1 << 8)
 
 /** @brief Stop bit mask */
-#define I2C_STOP  (1 << 8) //TODO:
+#define I2C_STOP  (1 << 9) //TODO:
+#define I2C_EN  (1)
 
-
-
-#define I2C_EN  (1 << )
 void i2c_master_init(uint16_t clk){
     (void) clk; /* This line is simply here to suppress the Unused Variable Error. */
                 /* You should remove this line in your final implementation */
@@ -54,7 +52,7 @@ void i2c_master_init(uint16_t clk){
     *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
 
     // I2C clock speed: 100kHz
-    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CCR;
+    *(uint8_t*)&i2c->CCR = (uint8_t)I2C_CCR;
 
     return;
 }
@@ -62,8 +60,9 @@ void i2c_master_init(uint16_t clk){
 void i2c_master_start(){
     struct i2c_reg_map *i2c = I2C1_BASE;
     // set start bit
+    i2c->CR1 |= I2C_EN;
     i2c->CR1 |= I2C_SB;
-    // check if SB =1
+    // wait if SB =1
     while(!(i2c->CR1 & I2C_SB));
     
     return;
@@ -79,17 +78,12 @@ void i2c_master_stop(){
 }
 
 int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
-    (void) buf;
-    (void) len;
-    (void) slave_addr;
-
     struct i2c_reg_map *i2c = I2C1_BASE;
-
-    // write the address(i2c's address) of slave into data register (EV8)
-    *(uint8_t*)&i2c->DR = slave_addr;
 
     // generate the topmost 7 bits as slave address (the last bit (write): 0)
     slave_addr = slave_addr << 1;
+    // write the address(i2c's address) of slave into data register (EV8)
+    *(uint8_t*)&i2c->DR = slave_addr;
 
     // check ADDR and TxE bit (they should be set to 1)(EV6, EV8_1)
     while(!((i2c->SR1 >> 1)&(i2c->SR1 >> 7)&1));
