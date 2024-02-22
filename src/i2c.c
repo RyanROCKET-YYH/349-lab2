@@ -31,54 +31,57 @@ struct i2c_reg_map {
 #define I2C_SB  (1 << 8)
 
 /** @brief Stop bit mask */
-#define I2C_STOP  (1 << 9) //TODO:
+#define I2C_CR1_STOP  (1 << 9) 
 #define I2C_EN  (1)
 #define I2C_CR1_SWRST (1 << 15)
 #define I2C_SR1_BTF (1 << 2)
 #define I2C_SR1_TXE (1 << 7)
 #define I2C_SR1_ADDR (1 << 1)
+#define I2C_TRISE (0x17)
+#define I2C_SR2_BUSY (1 << 1)
 
 void i2c_master_init(uint16_t clk){
     (void) clk; /* This line is simply here to suppress the Unused Variable Error. */
                 /* You should remove this line in your final implementation */
 
     struct i2c_reg_map *i2c = I2C1_BASE;
+    // Peripheral Clock Frequency: 16 Mhz
+    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
     // Reset and Clock Control
     struct rcc_reg_map *rcc = RCC_BASE;
     rcc->apb1_enr |= I2C1_CLKEN;
+    i2c->TRISE |= I2C_TRISE;    // configure the rise time register
+       // I2C clock speed: 100kHz
+    *(uint8_t*)&i2c->CCR = (uint8_t)I2C_CCR;
 
     // GPIO Pins
-    gpio_init(GPIO_B, 8, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);        /* PB_8(D15)*/
-    gpio_init(GPIO_B, 9, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);       /* PB_9(D14) */
+    gpio_init(GPIO_B, 8, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);   /* PB_8(D15)*/
+    gpio_init(GPIO_B, 9, MODE_ALT, OUTPUT_OPEN_DRAIN, OUTPUT_SPEED_LOW, PUPD_NONE, ALT4);   /* PB_9(D14) */
 
     i2c->CR1 |=I2C_CR1_SWRST;
     i2c->CR1 &= ~I2C_CR1_SWRST;         // reset i2c
-    // Peripheral Clock Frequency: 16 Mhz
-    *(uint8_t*)&i2c->CR2 = (uint8_t)I2C_CF;
-
-    // I2C clock speed: 100kHz
-    *(uint8_t*)&i2c->CCR = (uint8_t)I2C_CCR;
-    i2c->CR1 |= I2C_EN;
+    i2c->CR1 |= I2C_EN;         // enable peripheral
     return;
 }
 
 void i2c_master_start(){
     struct i2c_reg_map *i2c = I2C1_BASE;
     // set start bit
-    
     i2c->CR1 |= I2C_SB;
+    // when busy bit is cleared
+    // while (!(i2c->SR2 & I2C_SR2_BUSY));
     // wait if SB =1
     while(!(i2c->CR1 & I2C_SB));
-    
     return;
 }
 
 void i2c_master_stop(){
     struct i2c_reg_map *i2c = I2C1_BASE;
-    // set stop bit
-    i2c->CR1 |= I2C_STOP;
+
     // check TxE and BTF bit (they should be set to 1)(EV8_2)
-    while(!((i2c->SR1 >> 7)&(i2c->SR1 >> 2)&1));
+    while ((i2c->SR1 & I2C_SR1_BTF) | (i2c-> SR1 & I2C_SR1_TXE)) {  /** @TODO:*/
+        i2c->CR1 |= I2C_CR1_STOP;
+    };
     return;
 }
 
@@ -89,20 +92,26 @@ int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
     // generate the topmost 7 bits as slave address (the last bit (write): 0)
     slave_addr = slave_addr << 1;
     // write the address(i2c's address) of slave into data register
-    *(uint8_t*)&i2c->DR = slave_addr;
-    while(!(i2c->SR1 & I2C_SR1_ADDR));    // wait for ev6
+    *(uint8_t*)&i2c->DR = slave_addr; 
+    while((i2c->SR1 & I2C_SR1_ADDR)) {
+        (void)i2c->SR2;
+    };    // wait for ev6
 
     // check ADDR and TxE bit (they should be set to 1)(EV6, EV8_1)
-    (void)i2c->SR2; // Clear the ADDR flag by reading SR2 (EV6)
+    // Clear the ADDR flag by reading SR2 (EV6)
 
-    while(!(i2c->SR1 & I2C_SR1_TXE));   // wait ev8_1
-    i2c->DR = buf[0]; // Send first data byte
+    while((i2c->SR1 & I2C_SR1_TXE)) {
+        i2c->DR = buf[0]; 
+    };   // wait ev8_1
+    // Send first data byte
     // send data
     for(int i=1; i < len; i++){
-        while (!(i2c->SR1 & I2C_SR1_TXE)); // Wait for EV8
-        *(uint8_t*)&i2c->DR = buf[i];
+        while (i2c->SR1 & I2C_SR1_TXE) {
+            *(uint8_t*)&i2c->DR = buf[i];
+        }; // Wait for EV8
+        
     }
-    while (!(i2c->SR1 & I2C_SR1_BTF)); // Wait for EV8_2 
+    
     i2c_master_stop();
     return 0;
 }
