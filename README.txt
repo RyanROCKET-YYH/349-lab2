@@ -4,10 +4,12 @@
 
 @mainpage 349 Lab 2
 
-Yuhong Yao (yuhongy)
+Yuhong Yao (yuhongy), 
 Yiying Li (yiyingl4)
 
-Any additional comments you want to make can go here.  Did you like the
-project?  Was it too hard, too easy? Well, you get the idea.
+The lab makes us familiar with how to read the datasheet.
+We have to go through the i2c master mode events to make sure that we set all of the conditions.
+It's time-consuming and challenging for us to debug.
+If the write-up can give us an example of how to do it(how to deal with the events), it will make my life easier.
 
 */
