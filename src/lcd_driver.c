@@ -1,3 +1,5 @@
+/* lcd_driver.c contains functions of initilaizing and setting the lcd. */
+
 #include <i2c.h>
 #include <lcd_driver.h>
 #include <unistd.h>
@@ -6,6 +8,10 @@
 #define I2C_SLAVE_ADDR_W 0x4E   // 7 bit address
 #define I2C_SLAVE_ADDR_R 0x4F
 
+/*
+ * lcd_send_instruction():
+ * To send the instruction to lcd by i2c_write.
+*/
 void lcd_send_instruction(uint8_t command) {
     uint8_t LCD_ADDR = I2C_SLAVE_ADDR_W; 
     uint8_t i2c_write_buf[4];
@@ -17,6 +23,10 @@ void lcd_send_instruction(uint8_t command) {
     i2c_master_write(i2c_write_buf, 4, LCD_ADDR);
 }
 
+/*
+ * lcd_send_data():
+ * To send the data to lcd by i2c_write.
+*/
 void lcd_send_data(uint8_t data) {
     uint8_t LCD_ADDR = I2C_SLAVE_ADDR_W; 
     uint8_t i2c_write_buf[4];
@@ -28,18 +38,26 @@ void lcd_send_data(uint8_t data) {
     i2c_master_write(i2c_write_buf, 4, LCD_ADDR);
 }
 
+/*
+ * lcd_driver_init():
+ * To initialize the lcd_driver.
+*/
 void lcd_driver_init(){
     lcd_send_instruction(0b00110000);
     lcd_send_instruction(0b00110000);
     lcd_send_instruction(0b00110000);
 
     lcd_send_instruction(0b00100000);  // Function set (set interface to 4 bits long)
-   
+    
     // clear display
     lcd_send_instruction(0b00000001);
     for(int i = 1; i< 2000000; i++){}
 }
 
+/*
+ * lcd_print():
+ * To print the data from input to lcd.
+*/
 void lcd_print(char *input){
     while (*input) {
         lcd_send_data((uint8_t)(*input));
@@ -47,6 +65,10 @@ void lcd_print(char *input){
     }
 }
 
+/*
+ * lcd_set_cursor():
+ * To set the cursor of lcd.
+*/
 void lcd_set_cursor(uint8_t row, uint8_t col){
     uint8_t address;
     switch(row) {
@@ -62,6 +84,10 @@ void lcd_set_cursor(uint8_t row, uint8_t col){
     lcd_send_instruction(0x80 | address);
 }
 
+/*
+ * lcd_clear():
+ * To clear the lcd.
+*/
 void lcd_clear(){
     lcd_send_instruction(0b00000001);
     for(int i = 1; i< 2000000; i++){}

@@ -6,8 +6,13 @@
 #include <lcd_driver.h>
 #include <keypad_driver.h>
 
+// define the passcode's length
 #define PASSCODE_LENGTH   (4)
 
+/*
+ * lazy_delay():
+ * To make a delay.
+*/
 void lazy_delay(unsigned int milliseconds) {
   volatile unsigned int i, j;
   for (i = 0; i < milliseconds; i++) {
@@ -17,6 +22,10 @@ void lazy_delay(unsigned int milliseconds) {
   }
 }
 
+/*
+ * strncmp():
+ * To compare char array s1 and s2
+*/
 int strncmp(const char *s1, const char *s2, size_t n) {
     while (n-- && *s1 && (*s1 == *s2)) {
         s1++;
@@ -28,40 +37,66 @@ int strncmp(const char *s1, const char *s2, size_t n) {
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
+/*
+ * clear_passcode():
+ * To clear the buffer of the passcode
+*/
 void clear_passcode(char *buffer, size_t length) {
   for (size_t i = 0; i < length; i++) {
     buffer[i] = 0;
   }
 }
 
+/*
+ * lock_system():
+ * To lock the system, and print Locked in minicom
+*/
 void lock_system(char *passcode, uint8_t *is_locked, uint8_t *index, uint8_t *row, uint8_t *col) {
+  // clear the passcode buffer
   clear_passcode(passcode, PASSCODE_LENGTH);
   *is_locked = 1;
   *index = 0;
+  // set GPIO
   gpio_set(GPIO_B, 5);
   gpio_clr(GPIO_A, 10);
+
+  // clear the lcd
   lcd_clear();
   printk("Locked, ENTER PASSCODE:\n");
   *row = 0;
   *col = 0;
 }
 
+/*
+ * enter_button():
+ * To check if passcode is correct. 
+*/
 void enter_button(char *passcode, uint8_t *is_locked, uint8_t *index, const char *correct_passcode, uint8_t *row, uint8_t *col) {
+  // check if passcode is correct
   if (*index == PASSCODE_LENGTH && passcode[0] == '#' && strncmp(passcode, correct_passcode, PASSCODE_LENGTH) == 0) {
     *is_locked = 0;
+    // set GPIO
     gpio_clr(GPIO_B, 5);
     gpio_set(GPIO_A, 10);
     printk("Unlocked\n");
   } else {
     printk("Incorrect Passcode, try again!\n");
   }
+
+  // clear the lcd
   lcd_clear();
+
+  // clear the passcode buffer
   clear_passcode(passcode, PASSCODE_LENGTH);
   *index = 0;
   *row = 0;
   *col = 0;
 }
 
+/*
+ * key_display():
+ * set the lcd cursor position.
+*/
 void key_display(char key, uint8_t *row, uint8_t *col) {
     if (*col >= 16) {
         *col = 0;
@@ -80,11 +115,16 @@ void key_display(char key, uint8_t *row, uint8_t *col) {
     (*col)++; // Move cursor position forward
 }
 
-
+/*
+ * main():
+ * the main function to implement the lock system.
+*/
 int main() {
+  // initialize the uart and keypad
   uart_polling_init(115200);
   keypad_init();
-  //printk("hello world");
+
+  // set GPIO
   // BLUE LED (D2)
   gpio_init(GPIO_A, 10, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);
   // RED LED (D4)
@@ -93,20 +133,23 @@ int main() {
   gpio_init(GPIO_B, 10, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
   // "LOCK" BUTTON (B1)
   gpio_init(GPIO_C, 13, MODE_INPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_PULL_UP, ALT0);
-  // keypad_init();
+
+  // initialize the i2c_master and lcd_driver
   i2c_master_init(80);
   lcd_driver_init();
   lcd_clear();
 
+  // set variables for passcode, lock_systems, and lcd cursor
   char passcode[PASSCODE_LENGTH] = {0};
   uint8_t index = 0;
   uint8_t is_locked = 1;
-  const char correct_passcode[PASSCODE_LENGTH] = {'#', '3', '4', '9'};
-  uint8_t row = 0;
-  uint8_t col = 0;
+  const char correct_passcode[PASSCODE_LENGTH] = {'#', '3', '4', '9'}; // correct passcode is "#349"
+  uint8_t row = 0; //lcd cursor
+  uint8_t col = 0; //lcd cursor
 
   printk("Enter 'Start' to begin:\n");
   uint8_t start = 0;
+  // make user type in "Start" to enter the passcode
   while(!start) {
     char input[5] = {0}; // buffer for start
     for (int i = 0; i < 5; i++) {
@@ -122,18 +165,25 @@ int main() {
       printk("\n Enter 'Start' to begin:\n");
     }
   }
+
+  // set RED LED (D4)
   gpio_set(GPIO_B, 5);
+
+
   while(1) {
+    // check "LOCK" BUTTON (B1)
     if (!gpio_read(GPIO_C, 13)) {
       lock_system(passcode, &is_locked, &index, &row, &col);
       lazy_delay(10);
     }
 
+    // check "ENTER" BUTTON (D6)
     if (!gpio_read(GPIO_B, 10) && is_locked) {
       enter_button(passcode, &is_locked, &index, correct_passcode, &row, &col);
       lazy_delay(10);
     }
 
+    // read passcode from keypad
     char key = keypad_read();
     if (is_locked) {
       if (key != '\0') {
