@@ -6,8 +6,6 @@
 #include <lcd_driver.h>
 #include <keypad_driver.h>
 
-
-#define CORRECT_PASSCODE '#349'
 #define PASSCODE_LENGTH   (4)
 
 void lazy_delay(unsigned int milliseconds) {
@@ -19,14 +17,69 @@ void lazy_delay(unsigned int milliseconds) {
   }
 }
 
-int strcmp(const char *s1, const char *s2) {
-  while (*s1 && (*s1 == *s2)) {
-    s1++;
-    s2++;
-  }
-  return *(const unsigned char*)s1 - *(const unsigned char*)s2;
-
+int strncmp(const char *s1, const char *s2, size_t n) {
+    while (n-- && *s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    if (n == (size_t)-1) {
+        return 0;
+    }
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
+
+void clear_passcode(char *buffer, size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    buffer[i] = 0;
+  }
+}
+
+void lock_system(char *passcode, uint8_t *is_locked, uint8_t *index, uint8_t *row, uint8_t *col) {
+  clear_passcode(passcode, PASSCODE_LENGTH);
+  *is_locked = 1;
+  *index = 0;
+  gpio_set(GPIO_B, 5);
+  gpio_clr(GPIO_A, 10);
+  lcd_clear();
+  printk("Locked, ENTER PASSCODE:\n");
+  *row = 0;
+  *col = 0;
+}
+
+void enter_button(char *passcode, uint8_t *is_locked, uint8_t *index, const char *correct_passcode, uint8_t *row, uint8_t *col) {
+  if (*index == PASSCODE_LENGTH && passcode[0] == '#' && strncmp(passcode, correct_passcode, PASSCODE_LENGTH) == 0) {
+    *is_locked = 0;
+    gpio_clr(GPIO_B, 5);
+    gpio_set(GPIO_A, 10);
+    printk("Unlocked\n");
+  } else {
+    printk("Incorrect Passcode, try again!\n");
+  }
+  lcd_clear();
+  clear_passcode(passcode, PASSCODE_LENGTH);
+  *index = 0;
+  *row = 0;
+  *col = 0;
+}
+
+void key_display(char key, uint8_t *row, uint8_t *col) {
+    if (*col >= 16) {
+        *col = 0;
+        if (*row == 0) {
+            *row = 1;
+        } else {
+            lcd_clear();
+            *row = 0; // Reset to first line
+        }
+    }
+
+    lcd_set_cursor(*row, *col);
+    char display[2] = {key, '\0'}; // Prepare the string for display
+    lcd_print(display); // Show the key pressed
+
+    (*col)++; // Move cursor position forward
+}
+
 
 int main() {
   uart_polling_init(115200);
@@ -44,6 +97,14 @@ int main() {
   i2c_master_init(80);
   lcd_driver_init();
   lcd_clear();
+
+  char passcode[PASSCODE_LENGTH] = {0};
+  uint8_t index = 0;
+  uint8_t is_locked = 1;
+  const char correct_passcode[PASSCODE_LENGTH] = {'#', '3', '4', '9'};
+  uint8_t row = 0;
+  uint8_t col = 0;
+
   printk("Enter 'Start' to begin:\n");
   uint8_t start = 0;
   while(!start) {
@@ -53,7 +114,7 @@ int main() {
       uart_polling_put_byte(input[i]);
     }
     input[5] = '\0';
-    if (strcmp(input, "Start") == 0) {
+    if (strncmp(input, "Start", sizeof(input)) == 0) {
       start = 1;
       printk("\n What's your password?\n");
     } else {
@@ -61,39 +122,35 @@ int main() {
       printk("\n Enter 'Start' to begin:\n");
     }
   }
-
-  char passcode[PASSCODE_LENGTH] = {0};
-  uint8_t index = 0;
-  uint8_t is_locked = 1;
+  gpio_set(GPIO_B, 5);
   while(1) {
-    gpio_set(GPIO_B, 5);
-    char key = keypad_read();
-    if (key != '\0') {
-      char key_pressed[2] = {key, '\0'};
-      lcd_print(key_pressed);
+    if (!gpio_read(GPIO_C, 13)) {
+      lock_system(passcode, &is_locked, &index, &row, &col);
+      lazy_delay(10);
     }
-    
-    // Turn on the LEDs
-    // gpio_set(GPIO_A, 10);
-    // gpio_set(GPIO_B, 5);
-    // printk("LEDs ON\n");
-    // lazy_delay(1000); // 1 second delay
-    // // Turn off the LEDs
-    // gpio_clr(GPIO_A, 10);
-    // gpio_clr(GPIO_B, 5);
-    // printk("LEDs OFF\n");
-    // lazy_delay(1000); // 1 second delay
 
-    
-    // int button1_state = gpio_read(GPIO_B, 10);
-    // int button2_state = gpio_read(GPIO_C, 13);
-    // printk("BUTTON1 State:%d\n", button1_state);  // pull up too
-    // printk("BUTTON2 State:%d\n", button2_state); // 1 when not pressed, 0 pressed pull up
-    // lazy_delay(100);
-    // char input = uart_polling_get_byte();
-//     uart_polling_put_byte(input);
-    
-   
+    if (!gpio_read(GPIO_B, 10) && is_locked) {
+      enter_button(passcode, &is_locked, &index, correct_passcode, &row, &col);
+      lazy_delay(10);
+    }
+
+    char key = keypad_read();
+    if (is_locked) {
+      if (key != '\0') {
+        passcode[index++] = key;
+        key_display(key, &row, &col);
+        lazy_delay(2); // prevent double press
+      }
+    } else {
+      if (key != '\0') {
+        key_display(key, &row, &col);
+        lazy_delay(2); // prevent double press
+      }
+      if (!gpio_read(GPIO_B, 10)) {
+        lcd_clear();
+        lcd_set_cursor(0,0);
+      }
+    }
   }
   return 0;
 }
