@@ -1,8 +1,10 @@
+/* keypad_driver.c contains functions of  initilaizing and reading the number of keypad. */
+
 #include <gpio.h>
 #include <keypad_driver.h>
 #include <unistd.h>
 
-
+// the variables of keypad(columns and rows)
 #define COL1_PORT  0
 #define COL1_PIN   7
 #define COL2_PORT  0
@@ -35,8 +37,14 @@ const char key_map[NUM_ROWS][NUM_COLS] = {
     {'*', '0', '#'}
 };
 
+/* 
+ * keypad_init():
+ * initialize the 7 pins of the keypad.
+ * set the columns as output and rows as input.
+ * set the columns as high.
+*/
 void keypad_init(){
-  
+
     // columns as output
     gpio_init(GPIO_A, 7, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);		//pa_7
     gpio_init(GPIO_A, 5, MODE_GP_OUTPUT, OUTPUT_PUSH_PULL, OUTPUT_SPEED_LOW, PUPD_NONE, ALT0);		//pa_5
@@ -54,6 +62,10 @@ void keypad_init(){
     return;
 }
 
+/* 
+ * keypad_read():
+ * read what was pressed in keypad and return a char
+*/
 char keypad_read() {
     char key = '\0';
     for (int col = 0; col < NUM_COLS; col++) {

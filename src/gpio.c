@@ -1,3 +1,4 @@
+/* gpio.c contains the functions to initilaize and set the gpio.*/
 #include <gpio.h>
 #include <rcc.h>
 
