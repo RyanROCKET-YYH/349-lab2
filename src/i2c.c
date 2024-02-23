@@ -28,7 +28,7 @@ struct i2c_reg_map {
 #define I2C_CCR  0x50
 
 /** @brief Start bit mask */
-#define I2C_SB  (1 << 8)
+#define I2C_CR1_START  (1 << 8)
 
 /** @brief Stop bit mask */
 #define I2C_CR1_STOP  (1 << 9) 
@@ -40,6 +40,7 @@ struct i2c_reg_map {
 #define I2C_TRISE (0x17)
 #define I2C_SR2_BUSY (1 << 1)
 #define I2C_CR1_ACK (1 << 10)
+#define I2C_SR1_SB (1)
 
 void i2c_master_init(uint16_t clk){
     (void) clk; /* This line is simply here to suppress the Unused Variable Error. */
@@ -66,22 +67,20 @@ void i2c_master_init(uint16_t clk){
 
 void i2c_master_start(){
     struct i2c_reg_map *i2c = I2C1_BASE;
-    // set start bit
-    i2c->CR1 |= I2C_SB;
-    // when busy bit is cleared
-    // while (!(i2c->SR2 & I2C_SR2_BUSY));
-    // wait if SB =1
-    while(!(i2c->SR1 & 1));
+    // First, wait until BUSY bit is cleared
+    while (i2c->SR2 & I2C_SR2_BUSY);
+    // Then set the START bit to generate the start condition
+    i2c->CR1 |= I2C_CR1_START; // Make sure I2C_SB is the correct mask for the START bit in CR1
+    // Now wait for the SB flag to be set
+    while (!(i2c->SR1 & I2C_SR1_SB));
     return;
 }
 
 void i2c_master_stop(){
     struct i2c_reg_map *i2c = I2C1_BASE;
-
     // check TxE and BTF bit (they should be set to 1)(EV8_2)
-    while ((i2c->SR1 & I2C_SR1_BTF) | (i2c-> SR1 & I2C_SR1_TXE)) {  /** @TODO:*/
-        i2c->CR1 |= I2C_CR1_STOP;
-    };
+    while (!(i2c->SR1 & I2C_SR1_BTF) && !(i2c-> SR1 & I2C_SR1_TXE));
+    i2c->CR1 |= I2C_CR1_STOP;
     return;
 }
 
@@ -90,27 +89,19 @@ int i2c_master_write(uint8_t *buf, uint16_t len, uint8_t slave_addr){
 
     i2c_master_start();
     // generate the topmost 7 bits as slave address (the last bit (write): 0)
-    slave_addr = slave_addr << 1;
+    // slave_addr = slave_addr << 1;
     // write the address(i2c's address) of slave into data register
     i2c->DR = slave_addr; 
-    while(!(i2c->SR1 & I2C_SR1_ADDR)) {
-    };  
-    (void)i2c->SR2;  // wait for ev6
+    while(!(i2c->SR1 & I2C_SR1_ADDR));  // wait for ADDR to be set
+    (void)i2c->SR2;  // Ckear ADDR by reading SR2
 
-    // check ADDR and TxE bit (they should be set to 1)(EV6, EV8_1)
-    // Clear the ADDR flag by reading SR2 (EV6)
-
-    while(!(i2c->SR1 & I2C_SR1_TXE)) {
-    };   // wait ev8_1
-    i2c->DR = buf[0]; 
-    // Send first data byte
-    // send data
-    for(int i=1; i < len; i++){
-        while (!(i2c->SR1 & I2C_SR1_TXE)) {
-            i2c->DR = buf[i];
-        }; // Wait for EV8
+    for(int i = 0; i < len; i++){
+        while (!(i2c->SR1 & I2C_SR1_TXE)); // Wait for TxE to be set
+        i2c->DR = buf[i];               // Send data byte
     }
-    i2c_master_stop();
+    
+    while (!(i2c->SR1 & I2C_SR1_BTF)); // Wait for BTF to be set before issuing stop condition
+    i2c_master_stop(); // Send stop condition
     return 0;
 }
 

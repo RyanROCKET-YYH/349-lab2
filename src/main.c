@@ -37,10 +37,6 @@ int main() {
   // keypad_init();
   i2c_master_init(80);
   lcd_driver_init();
-  while (1)
-  {
-    /* code */
-  }
   
   // printk("LCD CLR");
   // while(1) {
